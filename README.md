@@ -308,3 +308,5 @@ pytest -v
 1. **API Keys & Credentials:** Never commit `.env` or hard-code `GEMINI_API_KEY`.
 2. **CORS:** Configured explicitly to allow Angular frontend development (`http://localhost:4200`) without opening insecure wildcard origins in production.
 3. **Input Sanitization:** Robust Pydantic validations on all input types, age boundaries, gender categories, and audio MIME checks.
+#   L u n g D i s e a s e P r e d i c t i o n  
+ 
