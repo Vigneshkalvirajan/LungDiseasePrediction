@@ -7,6 +7,8 @@ import {
   ReportResponse,
   HistoryListResponse,
   HistoryDetailResponse,
+  PatientChatRequest,
+  PatientChatResponse,
 } from "../types";
 
 const API_BASE_URL =
@@ -176,5 +178,35 @@ export const apiService = {
       cache: "no-store",
     });
     return handleResponse<HistoryDetailResponse>(response);
+  },
+
+  /**
+   * Check if a Patient ID is already registered in the system
+   */
+  async checkPatientId(patient_id: string): Promise<{ success: boolean; exists: boolean; patient?: PatientInfo | null }> {
+    if (!patient_id || !patient_id.trim()) {
+      return { success: true, exists: false, patient: null };
+    }
+    const response = await fetch(`${API_BASE_URL}/api/history/patient-check/${encodeURIComponent(patient_id.trim())}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    return handleResponse<{ success: boolean; exists: boolean; patient?: PatientInfo | null }>(response);
+  },
+
+  /**
+   * Interactive AI Clinical Copilot Chat regarding patient's analysis & diagnosis
+   */
+  async chatWithPatient(payload: PatientChatRequest): Promise<PatientChatResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<PatientChatResponse>(response);
   },
 };

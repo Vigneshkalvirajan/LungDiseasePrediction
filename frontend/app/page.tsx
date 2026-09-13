@@ -54,6 +54,10 @@ export default function VoxMedConsolePage() {
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [report, setReport] = useState<RespiratoryReport | null>(null);
 
+  // Patient ID Uniqueness & Conflict Validation State
+  const [registeredPatientForId, setRegisteredPatientForId] = useState<PatientInfo | null>(null);
+  const [idConflictError, setIdConflictError] = useState<string | null>(null);
+
   // WhatsApp Modal State
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
@@ -79,6 +83,72 @@ export default function VoxMedConsolePage() {
     resetAnalysis();
   }
 
+  // Check Patient ID Uniqueness & Auto-populate for Returning Patients
+  async function checkAndApplyPatientId(idToValidate: string, currentName: string) {
+    const trimmedId = idToValidate.trim();
+    if (!trimmedId) {
+      setRegisteredPatientForId(null);
+      setIdConflictError(null);
+      return;
+    }
+
+    try {
+      const checkRes = await apiService.checkPatientId(trimmedId);
+      if (checkRes.exists && checkRes.patient) {
+        const reg = checkRes.patient;
+        setRegisteredPatientForId(reg);
+
+        if (!currentName.trim()) {
+          // Auto-fill existing patient details for returning visit
+          setPatient((prev) => ({
+            ...prev,
+            patient_id: trimmedId,
+            name: reg.name,
+            age: reg.age,
+            gender: reg.gender as any,
+            mobile_number: reg.mobile_number || prev.mobile_number,
+            dob: reg.dob || prev.dob,
+          }));
+          setIdConflictError(null);
+        } else if (currentName.trim().toLowerCase() !== reg.name.trim().toLowerCase()) {
+          setIdConflictError(
+            `Patient ID "${trimmedId}" is already registered to "${reg.name}". Each patient must have a unique Patient ID.`
+          );
+        } else {
+          setIdConflictError(null);
+        }
+      } else {
+        setRegisteredPatientForId(null);
+        setIdConflictError(null);
+      }
+    } catch {
+      // Ignore background network error in check
+    }
+  }
+
+  function handlePatientIdChange(newId: string) {
+    setPatient((prev) => ({ ...prev, patient_id: newId }));
+    checkAndApplyPatientId(newId, patient.name);
+  }
+
+  function handlePatientNameChange(newName: string) {
+    setPatient((prev) => ({ ...prev, name: newName }));
+    if (registeredPatientForId) {
+      if (
+        newName.trim() &&
+        newName.trim().toLowerCase() !== registeredPatientForId.name.trim().toLowerCase()
+      ) {
+        setIdConflictError(
+          `Patient ID "${patient.patient_id}" is already registered to "${registeredPatientForId.name}". Each patient must have a unique Patient ID.`
+        );
+      } else {
+        setIdConflictError(null);
+      }
+    } else {
+      setIdConflictError(null);
+    }
+  }
+
   // Reset to clean New Analysis state
   function resetAnalysis() {
     setStatus("idle");
@@ -86,6 +156,8 @@ export default function VoxMedConsolePage() {
     setPrediction(null);
     setReport(null);
     setAudioFile(null);
+    setRegisteredPatientForId(null);
+    setIdConflictError(null);
     if (fileRef.current) {
       fileRef.current.value = "";
     }
@@ -160,7 +232,8 @@ export default function VoxMedConsolePage() {
     Number(patient.age) <= 125 &&
     patient.gender.length > 0 &&
     patient.dob.trim().length > 0 &&
-    audioFile !== null;
+    audioFile !== null &&
+    !idConflictError;
 
   // Trigger Real Analysis
   async function handleAnalyze() {
@@ -192,7 +265,9 @@ export default function VoxMedConsolePage() {
       setActiveTab("results");
       setBackendHealthy(true);
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to analyze audio recording. Please check backend connection.");
+      setErrorMessage(
+        err.message || "Analysis request failed. Ensure the FastAPI backend is running."
+      );
       setStatus("idle");
     }
   }
@@ -354,27 +429,38 @@ export default function VoxMedConsolePage() {
                     </h2>
                   </div>
                   <p className="mt-1 text-xs text-mute">
-                    Enter patient clinical demographics for report generation and WhatsApp delivery.
+                    Enter patient clinical demographics for report generation and longitudinal tracking.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {/* Patient Name */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-mono uppercase tracking-wider text-ink/80 mb-1">
-                      Patient Full Name <span className="text-sev-high">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Marcus Bell"
-                      value={patient.name}
-                      onChange={(e) =>
-                        setPatient({ ...patient, name: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-line bg-paper px-3.5 py-2 text-xs text-ink outline-none transition-all placeholder:text-mute/60 focus:border-brand focus:ring-2 focus:ring-brand/15"
-                    />
-                  </div>
+                  {/* Returning Patient Status Notification */}
+                  {registeredPatientForId && !idConflictError && (
+                    <div className="sm:col-span-2 rounded-xl bg-sev-low/10 border border-sev-low/30 p-3 text-xs text-sev-low flex items-center justify-between font-mono">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">✓ Returning Patient:</span>
+                        <span>{registeredPatientForId.name} (ID: {registeredPatientForId.patient_id})</span>
+                      </div>
+                      <span className="text-[10px] bg-sev-low/20 px-2 py-0.5 rounded-full font-sans font-medium">
+                        Verified Identity
+                      </span>
+                    </div>
+                  )}
+
+                  {/* ID Conflict Error Alert */}
+                  {idConflictError && (
+                    <div className="sm:col-span-2 rounded-xl bg-sev-high/10 border border-sev-high/30 p-3 text-xs text-sev-high flex items-start gap-2.5">
+                      <svg className="size-4 shrink-0 mt-0.5 text-sev-high" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold">Patient ID Conflict</p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed">{idConflictError}</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Patient ID (MRN) */}
                   <div>
@@ -384,12 +470,33 @@ export default function VoxMedConsolePage() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. PAT-2049"
+                      placeholder="e.g. 1 or PAT-2049"
                       value={patient.patient_id}
-                      onChange={(e) =>
-                        setPatient({ ...patient, patient_id: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-line bg-paper px-3.5 py-2 text-xs font-mono text-ink outline-none transition-all placeholder:text-mute/60 focus:border-brand focus:ring-2 focus:ring-brand/15"
+                      onChange={(e) => handlePatientIdChange(e.target.value)}
+                      className={`w-full rounded-lg border bg-paper px-3.5 py-2 text-xs font-mono text-ink outline-none transition-all placeholder:text-mute/60 ${
+                        idConflictError
+                          ? "border-sev-high focus:border-sev-high focus:ring-2 focus:ring-sev-high/15"
+                          : "border-line focus:border-brand focus:ring-2 focus:ring-brand/15"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Patient Name */}
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-ink/80 mb-1">
+                      Patient Full Name <span className="text-sev-high">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Marcus Bell"
+                      value={patient.name}
+                      onChange={(e) => handlePatientNameChange(e.target.value)}
+                      className={`w-full rounded-lg border bg-paper px-3.5 py-2 text-xs text-ink outline-none transition-all placeholder:text-mute/60 ${
+                        idConflictError
+                          ? "border-sev-high focus:border-sev-high focus:ring-2 focus:ring-sev-high/15"
+                          : "border-line focus:border-brand focus:ring-2 focus:ring-brand/15"
+                      }`}
                     />
                   </div>
 

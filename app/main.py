@@ -10,6 +10,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.analyze import router as analyze_router
 from app.api.routes.report import router as report_router
 from app.api.routes.history import router as history_router
+from app.api.routes.chat import router as chat_router
 
 # Configure root logger
 logging.basicConfig(
@@ -76,6 +77,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(analyze_router, prefix="/api")
 app.include_router(report_router, prefix="/api")
 app.include_router(history_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
 
 @app.get("/", include_in_schema=False)
 async def root():

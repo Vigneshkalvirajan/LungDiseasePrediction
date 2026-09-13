@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { HistoryItem, HistoryDetailRecord } from "../../types";
 import { apiService } from "../../services/api";
 import { ReportView, Severity, severityDot, severityLabel, severityText } from "./ReportView";
-import { WhatsAppModal } from "./WhatsAppModal";
 
 interface HistoryViewProps {
   onNewAnalysis: () => void;
@@ -17,7 +16,6 @@ export function HistoryView({ onNewAnalysis }: HistoryViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   useEffect(() => {
     fetchHistory();
@@ -88,44 +86,13 @@ export function HistoryView({ onNewAnalysis }: HistoryViewProps) {
     };
 
     return (
-      <div className="min-w-0 flex-1">
-        {/* Detail Top Bar */}
-        <div className="flex items-center justify-between border-b border-line bg-surface/80 px-6 py-3.5 no-print">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSelectedRecord(null)}
-              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper transition-colors"
-            >
-              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Back to History List
-            </button>
-            <span className="font-mono text-xs text-mute">
-              Analysis ID: {selectedRecord.id.slice(0, 8)}...
-            </span>
-          </div>
-          <div className="flex items-center gap-2"></div>
-        </div>
-
-        <ReportView
-          patient={historicalPatient}
-          prediction={historicalPrediction}
-          report={selectedRecord.report || null}
-          audioFilename={selectedRecord.audio_filename || "Auscultation Recording"}
-          onBack={() => setSelectedRecord(null)}
-          onSendWhatsApp={() => setIsWhatsAppOpen(true)}
-        />
-
-        {/* WhatsApp Modal for Historical Record */}
-        <WhatsAppModal
-          isOpen={isWhatsAppOpen}
-          onClose={() => setIsWhatsAppOpen(false)}
-          patient={historicalPatient}
-          prediction={historicalPrediction}
-          report={selectedRecord.report || null}
-        />
-      </div>
+      <ReportView
+        patient={historicalPatient}
+        prediction={historicalPrediction}
+        report={selectedRecord.report || null}
+        audioFilename={selectedRecord.audio_filename || "Auscultation Recording"}
+        onBack={() => setSelectedRecord(null)}
+      />
     );
   }
 

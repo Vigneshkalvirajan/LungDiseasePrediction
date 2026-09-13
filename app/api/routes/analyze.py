@@ -75,6 +75,20 @@ async def analyze_and_report(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
+    # Validate Patient ID uniqueness per individual
+    existing_patient = history_service.get_patient_identity(patient.patient_id)
+    if existing_patient and existing_patient.get("name"):
+        existing_name = existing_patient["name"].strip()
+        if existing_name.lower() != patient.name.strip().lower():
+            logger.warning(
+                f"Patient ID conflict: ID '{patient.patient_id}' is already registered to '{existing_name}', "
+                f"cannot re-assign to '{patient.name}'"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Patient ID '{patient.patient_id}' is already registered to '{existing_name}'. Patient IDs are unique per individual. Please enter a unique Patient ID or use the registered patient's name."
+            )
+
     # 2. Run ML Analysis
     audio_bytes = await file.read()
     if len(audio_bytes) == 0:

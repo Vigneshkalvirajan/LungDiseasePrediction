@@ -55,6 +55,33 @@ async def get_analysis_history(limit: int = 100, patient_id: Optional[str] = Non
         )
 
 @router.get(
+    "/history/patient-check/{patient_id}",
+    summary="Check if Patient ID exists and get identity info",
+    description="Check if a Patient ID is already registered in the system and fetch demographics for identity validation."
+)
+async def check_patient_id(patient_id: str):
+    try:
+        patient_info = history_service.get_patient_identity(patient_id)
+        if patient_info:
+            return {
+                "success": True,
+                "exists": True,
+                "patient": patient_info
+            }
+        return {
+            "success": True,
+            "exists": False,
+            "patient": None
+        }
+    except Exception as e:
+        logger.error(f"Error checking patient ID {patient_id}: {e}")
+        return {
+            "success": False,
+            "exists": False,
+            "patient": None
+        }
+
+@router.get(
     "/history/patient/{patient_id}",
     summary="Get All Previous Visits for a Patient",
     description="Retrieve chronological list of past visits and diagnoses for a specific patient ID."

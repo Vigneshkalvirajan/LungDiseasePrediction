@@ -162,6 +162,28 @@ class HistoryService:
         finally:
             conn.close()
 
+    def get_patient_identity(self, patient_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves registered patient identity and demographics by patient_id."""
+        if not patient_id or not patient_id.strip():
+            return None
+        
+        conn = sqlite3.connect(str(self.db_path))
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.execute("""
+                SELECT patient_id, name, age, gender, mobile_number, dob
+                FROM analysis_history
+                WHERE LOWER(TRIM(patient_id)) = LOWER(TRIM(?))
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (patient_id.strip(),))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return dict(row)
+        finally:
+            conn.close()
+
     def get_record(self, record_id: str) -> Optional[Dict[str, Any]]:
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row

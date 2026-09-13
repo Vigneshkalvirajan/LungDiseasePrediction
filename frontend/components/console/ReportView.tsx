@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { PredictionResult, RespiratoryReport, PatientInfo } from "../../types";
 import { WhatsAppModal } from "./WhatsAppModal";
+import { PatientChatDrawer } from "./PatientChatDrawer";
 import { generateClinicalReportPdf } from "../../services/pdfService";
 
 export type Severity = "low" | "mid" | "high";
@@ -57,6 +58,7 @@ export function ReportView({
   onSendWhatsApp,
 }: ReportViewProps) {
   const [internalWhatsAppOpen, setInternalWhatsAppOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Determine severity based on predicted class
   const predictedClass = prediction?.predicted_class || "Healthy";

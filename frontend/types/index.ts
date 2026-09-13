@@ -145,3 +145,30 @@ export type DiseaseCategory =
   | "Healthy"
   | "Pneumonia"
   | "URTI";
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp?: string;
+}
+
+export interface PatientChatRequest {
+  patient: PatientInfo;
+  prediction: PredictionResult;
+  report?: RespiratoryReport | null;
+  messages: Array<{
+    role: string;
+    content: string;
+    timestamp?: string;
+  }>;
+  question: string;
+}
+
+export interface PatientChatResponse {
+  success: boolean;
+  reply: string;
+  timestamp: string;
+  suggested_followups: string[];
+}
+
